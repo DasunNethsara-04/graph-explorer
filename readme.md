@@ -31,7 +31,13 @@ It automatically calculates and displays:
 
 ## 🖥️ Screenshots
 
-> *(Add your screenshots here once you run the app — e.g., `![Graph Explorer Screenshot](screenshots/main.png)`)*
+<img width="1920" height="1080" alt="Screenshot (9)" src="https://github.com/user-attachments/assets/fe0a3aa2-782f-4255-9a8f-acce151ba350" />
+<img width="1920" height="1080" alt="Screenshot (13)" src="https://github.com/user-attachments/assets/e48911c5-208d-456e-bcd5-61a217bcc6d2" />
+<img width="1920" height="1080" alt="Screenshot (12)" src="https://github.com/user-attachments/assets/14e22651-ac46-4aeb-b707-8c3a5ec3ae65" />
+<img width="1920" height="1080" alt="Screenshot (11)" src="https://github.com/user-attachments/assets/52632715-fccc-417d-b8b6-f29423304ca1" />
+<img width="1920" height="1080" alt="Screenshot (10)" src="https://github.com/user-attachments/assets/c5ad4483-3731-43f7-bd16-c651727b4ac8" />
+
+
 
 ---
 
