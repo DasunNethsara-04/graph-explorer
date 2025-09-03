@@ -45,7 +45,7 @@ def safe_eval_expression(expr: str, x_array: np.ndarray) -> np.ndarray:
 
 def slope_at_point(x: np.ndarray, y: np.ndarray, x0: float, window: int = 3) -> float:
     """
-    Estimate slope (dy/dx) at x0 by fitting a local straight line (least squares).
+    Estimate slope (dy/dx) at x0 by fitting a local straight line (the least squares).
     Picks points in a window around the nearest x to x0. Falls back gracefully.
     """
     if len(x) < 2:
@@ -277,47 +277,68 @@ class GraphApp(ctk.CTk):
         if len(x) == 0:
             raise ValueError("No valid finite data to plot.")
 
-        # Scatter the raw points
+        # Scatter original points
         self.ax.scatter(x, y, color="#1f77b4", s=50, label="Data points")
 
-        # If using x,y values, draw best fit line
+        # Fit model
         if self.mode.get() == "Using x, y values" and len(x) >= 2:
-            coeffs = np.polyfit(x, y, deg=1)  # Linear regression
-            y_fit = np.polyval(coeffs, x)
-            order = np.argsort(x)
-            self.ax.plot(x[order], y_fit[order], color="#ff7f0e", linewidth=2, label="Best fit line")
-            slope_fit = coeffs[0]
+            # Try linear fit first
+            coeffs_lin = np.polyfit(x, y, deg=1)
+            y_lin = np.polyval(coeffs_lin, x)
+            residuals = np.sum((y - y_lin) ** 2)
+
+            # Try cubic fit
+            coeffs_cubic = np.polyfit(x, y, deg=3)
+            y_cubic = np.polyval(coeffs_cubic, x)
+            residuals_cubic = np.sum((y - y_cubic) ** 2)
+
+            if residuals <= residuals_cubic:
+                coeffs = coeffs_lin
+                fit_degree = 1
+            else:
+                coeffs = coeffs_cubic
+                fit_degree = 3
+
+            # Generate smooth line
+            x_fit = np.linspace(min(x), max(x), 300)
+            y_fit = np.polyval(coeffs, x_fit)
+            self.ax.plot(x_fit, y_fit, color="#ff7f0e", linewidth=2,
+                         label="Best fit line" if fit_degree == 1 else "Best fit curve")
+
+            # Pick random points ON the fitted line
+            rng = np.random.default_rng()
+            rand_x = rng.choice(x_fit, size=2, replace=False)
+            rand_y = np.polyval(coeffs, rand_x)
+            self.ax.scatter(rand_x, rand_y, color="#2ca02c", s=60, label="Random points on fit")
+            for xi, yi in zip(rand_x, rand_y):
+                self.ax.annotate(f"({xi:.3g}, {yi:.3g})", (xi, yi),
+                                 textcoords="offset points", xytext=(8, 6), fontsize=8)
+
+            # Slope from random points
+            slope_random = (rand_y[1] - rand_y[0]) / (rand_x[1] - rand_x[0])
+
         else:
-            slope_fit = None
+            # Equation mode: already smooth
+            self.ax.plot(x, y, color="#1f77b4", linewidth=2, label="Curve")
+            rng = np.random.default_rng()
+            rand_idx = rng.choice(len(x), size=2, replace=False)
+            rand_x, rand_y = x[rand_idx], y[rand_idx]
+            self.ax.scatter(rand_x, rand_y, color="#2ca02c", s=60, label="Random points on curve")
+            for xi, yi in zip(rand_x, rand_y):
+                self.ax.annotate(f"({xi:.3g}, {yi:.3g})", (xi, yi),
+                                 textcoords="offset points", xytext=(8, 6), fontsize=8)
+            slope_random = (rand_y[1] - rand_y[0]) / (rand_x[1] - rand_x[0])
 
         # G Point
         Gx = float(np.mean(x))
         Gy = float(np.mean(y))
         self.ax.scatter([Gx], [Gy], color="#d62728", marker="X", s=90, label="G Point")
 
-        # Random points
-        rng = np.random.default_rng()
-        if len(x) >= 2:
-            rand_idx = rng.choice(len(x), size=min(2, len(x)), replace=False)
-            rx, ry = x[rand_idx], y[rand_idx]
-            self.ax.scatter(rx, ry, color="#2ca02c", s=60, label="Random points")
-            for xi, yi in zip(rx, ry):
-                self.ax.annotate(f"({xi:.3g}, {yi:.3g})", (xi, yi),
-                                 textcoords="offset points", xytext=(8, 6), fontsize=8)
-
-        # Slope at G
-        if slope_fit is not None:
-            mG = slope_fit
-        else:
-            mG = slope_at_point(x, y, Gx, window=3)
-
-        subtitle = f"G=({Gx:.4g}, {Gy:.4g})   |   slope at G={mG:.4g}" if not math.isnan(
-            mG) else f"G=({Gx:.4g}, {Gy:.4g})"
+        subtitle = f"G=({Gx:.4g}, {Gy:.4g})   |   slope (random pts)={slope_random:.4g}"
         self.ax.set_title(title_info + ("\n" if title_info else "") + subtitle)
         self.ax.legend(loc="best", fontsize=9)
 
-        slope_text = f"{mG:.6g}" if not math.isnan(mG) else "—"
-        self.status.configure(text=f"G Point: ({Gx:.6g}, {Gy:.6g})    |    Slope at G: {slope_text}")
+        self.status.configure(text=f"G Point: ({Gx:.6g}, {Gy:.6g})    |    Slope (random pts): {slope_random:.6g}")
 
         self.canvas.draw()
 
